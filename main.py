@@ -35,11 +35,15 @@ for code in RECEIPT_CODES:
     # Now we're on the page 1 where you say how you ordered, Drive-Thru, Carry-Out, Mobile, etc.
     # For now, we're all gonna be driving through
     # Drive thru is ALWAYS Opt2, for now
-    driveThruSpan = browser.find_element_by_class_name("Opt2").find_element_by_class_name("radioSimpleInput").click()
+    browser.find_element_by_class_name("Opt2").find_element_by_class_name("radioSimpleInput").click()
     browser.find_element_by_id("NextButton").click()
 
     # Page 2
     # This is the page where you rate how satisfied overall you are with your visit
     # We've got to make this random, but not TOO random... if you know what I mean ;)
-    choice = random.choices(["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], weights=(40, 30, 15, 10, 5), k=1)  # These are the options from best to worst, greatest to least. And THESE MOMMIES ARE **WEIGHTED**
+    choice = random.choices(["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], weights=(40, 30, 15, 10, 5), k=1)[0]  # These are the options from best to worst, greatest to least. And THESE MOMMIES ARE **WEIGHTED**
+    # Choose an option
+    browser.find_element_by_class_name(choice).find_element_by_class_name("radioSimpleInput").click()
+    browser.find_element_by_id("NextButton").click()
 
+    # Page 3
