@@ -40,4 +40,6 @@ for code in RECEIPT_CODES:
 
     # Page 2
     # This is the page where you rate how satisfied overall you are with your visit
+    # We've got to make this random, but not TOO random... if you know what I mean ;)
+    choice = random.choices(["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], weights=(40, 30, 15, 10, 5), k=1)  # These are the options from best to worst, greatest to least. And THESE MOMMIES ARE **WEIGHTED**
 
