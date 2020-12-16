@@ -78,16 +78,20 @@ def bruteForceSurvey():
     :return: nothing
     """
     exceptionCount = 0
+    passCount = 0
+
     while exceptionCount < 30:
         try:
             vc = browser.find_element_by_class_name("ValCode")
             print(f"Done! SITE RESPONSE: {vc.text}")
             print(f"Number of exceptions: {exceptionCount}")
+            print(f"Passes made: {passCount}")
             break
         except NoSuchElementException:
             pass
         try:
             print("Making a pass...")
+            passCount += 1
             solveTablesWithRadioButtons()
         except NoSuchElementException:
             exceptionCount += 1
@@ -99,7 +103,7 @@ def bruteForceSurvey():
                     problem = True if solveYesNo() == "Opt1" else False
                     clickNext()
                     if problem:
-                        print("Shit, there was a problem!")
+                        print("Shit, there was a problem with the order!")
                         # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
                         # We are going to custom solve this.
                         opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
@@ -125,12 +129,14 @@ def bruteForceSurvey():
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = ["16588-13901-21420-16513-00033-7", "16588-13631-21420-16205-00190-1"]
+    RECEIPT_CODES = []
 
     # Here is a convenient list for slicing
     options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
 
     for code in RECEIPT_CODES:
+        print(f"Taking the survey with code {code}")
+
         # Set up the browser
         browser = webdriver.Chrome(executable_path=".drivers/chromedriver")
 
@@ -176,5 +182,10 @@ if __name__ == "__main__":
         # We are going to run through all the pages, completing the appropriate actions along the way.
         bruteForceSurvey()
         # That should end us
+
+        # Close the browser
         browser.close()
         browser.quit()
+
+        # Let us know
+        print(f"Finished survey with code {code}\n")
