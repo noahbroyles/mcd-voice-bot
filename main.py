@@ -10,7 +10,14 @@
 
 # Imports
 import random
+import sys
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+
+
+# Load up the feedback
+with open("responses.txt", "r") as responseFile:
+    POSSIBLE_FEEDBACK = [f for f in responseFile.read().split("\n")]
 
 
 def getChoice(customChoices=["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], customWeights=(40, 30, 15, 10, 5)):
@@ -33,15 +40,100 @@ def clickNext():
     browser.find_element_by_id("NextButton").click()
 
 
+def solveTablesWithRadioButtons():
+    while True:
+        table = browser.find_element_by_tag_name("table")
+        trs = table.find_elements_by_css_selector(".InputRowOdd, .InputRowEven")
+        for tr in trs:
+            opt = getChoice()
+            tr.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+        clickNext()
+
+
+def solveCheckBoxes():
+    while True:
+        # We're on a page with a bunch of boxes to check. We only want to check a random amount.
+        cataListDiv = browser.find_element_by_class_name("cataListContainer")
+        checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
+        boxesToCheck = random.randrange(int(0.2 * len(checkBoxDivs)), len(checkBoxDivs) - 1)
+        random.shuffle(checkBoxDivs)
+        for i in range(boxesToCheck):
+            checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
+        clickNext()
+
+
+def solveYesNo():
+    table = browser.find_element_by_tag_name("table")
+    # Let's choose whether or not we had an issue. Opt2 is good
+    opt = getChoice(customChoices=["Opt1", "Opt2"], customWeights=(20, 80))  # So every 8 out of ten times, there was no problem
+    table.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+
+    # Gucci! Now let's just return what we picked to the program can know
+    return opt
+
+
+def bruteForceSurvey():
+    """
+    This method hacks its way through the survey, catching exceptions along the way
+    :return: nothing
+    """
+    exceptionCount = 0
+    while exceptionCount < 30:
+        try:
+            vc = browser.find_element_by_class_name("ValCode")
+            print(f"Done! SITE RESPONSE: {vc.text}")
+            print(f"Number of exceptions: {exceptionCount}")
+            break
+        except NoSuchElementException:
+            pass
+        try:
+            print("Making a pass...")
+            solveTablesWithRadioButtons()
+        except NoSuchElementException:
+            exceptionCount += 1
+            try:
+                solveCheckBoxes()
+            except NoSuchElementException:
+                exceptionCount += 1
+                try:
+                    problem = True if solveYesNo() == "Opt1" else False
+                    clickNext()
+                    if problem:
+                        print("Shit, there was a problem!")
+                        # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
+                        # We are going to custom solve this.
+                        opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
+                        browser.find_element_by_tag_name("table").find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+                        clickNext()
+                except NoSuchElementException:
+                    exceptionCount += 1
+                    try:
+                        # Let's try leaving feedback (or not)
+                        if getChoice([True, False], (20, 80)):
+                            # We've gotta leave some feedback.
+                            feedback = random.choice(POSSIBLE_FEEDBACK)
+                            commentBox = browser.find_element_by_tag_name("textarea")
+                            commentBox.send_keys(feedback)
+                            clickNext()
+                        else:
+                            # Sorry MCD, no feedback today!
+                            clickNext()
+                    except NoSuchElementException:
+                        exceptionCount += 1
+
+
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = ["16588-13401-21420-15544-00021-5"]
+    RECEIPT_CODES = ["16588-13901-21420-16513-00033-7", "16588-13631-21420-16205-00190-1"]
 
-    # Set up the browser
-    browser = webdriver.Chrome(executable_path=".drivers/chromedriver")
+    # Here is a convenient list for slicing
+    options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
 
     for code in RECEIPT_CODES:
+        # Set up the browser
+        browser = webdriver.Chrome(executable_path=".drivers/chromedriver")
+
         # Go to the voice survey site
         browser.get("https://mcdvoice.com")
 
@@ -80,14 +172,9 @@ if __name__ == "__main__":
         browser.find_element_by_class_name(choice).find_element_by_class_name("radioSimpleInput").click()
         clickNext()
 
-        # Page 3
-        # This is the page where you rate certain things about your visit, crew, food taste and temperature, etc.
-        table = browser.find_element_by_tag_name("table")
-        trs = table.find_elements_by_css_selector(".InputRowOdd, .InputRowEven")
-        for tr in trs:
-            choice = getChoice(customChoices=["Opt5", "Opt4", "Opt3", "Opt2"], customWeights=(50, 20, 20, 10))
-            tr.find_element_by_class_name(choice).find_element_by_class_name("radioSimpleInput").click()
-        clickNext()
-
-        # Page 4
-        # This is the page where you rate some redundant crap about your food and order.
+        # Since the survey is dynamic, I ran into a bit of an issue. No matter, brute force time!
+        # We are going to run through all the pages, completing the appropriate actions along the way.
+        bruteForceSurvey()
+        # That should end us
+        browser.close()
+        browser.quit()
