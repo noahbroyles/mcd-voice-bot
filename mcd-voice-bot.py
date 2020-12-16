@@ -54,7 +54,7 @@ def solveCheckBoxes():
         # We're on a page with a bunch of boxes to check. We only want to check a random amount.
         cataListDiv = browser.find_element_by_class_name("cataListContainer")
         checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
-        boxesToCheck = random.randrange(int(0.2 * len(checkBoxDivs)), len(checkBoxDivs) - 1)
+        boxesToCheck = random.randrange(int(0.2 * len(checkBoxDivs)), len(checkBoxDivs) - random.randrange(1, 4))
         random.shuffle(checkBoxDivs)
         for i in range(boxesToCheck):
             checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
@@ -69,6 +69,17 @@ def solveYesNo():
 
     # Gucci! Now let's just return what we picked to the program can know
     return opt
+
+
+def leaveComment():
+    commentBox = browser.find_element_by_tag_name("textarea")
+    if getChoice([True, False], (20, 80)):
+        # We've gotta leave some feedback.
+        feedback = random.choice(POSSIBLE_FEEDBACK)
+        commentBox.send_keys(feedback)
+    clickNext()
+   
+
 
 
 def bruteForceSurvey():
@@ -91,11 +102,11 @@ def bruteForceSurvey():
         try:
             print("Making a pass...")
             passCount += 1
-            solveTablesWithRadioButtons()
+            leaveComment()
         except NoSuchElementException:
             exceptionCount += 1
             try:
-                solveCheckBoxes()
+                solveTablesWithRadioButtons()
             except NoSuchElementException:
                 exceptionCount += 1
                 try:
@@ -111,16 +122,7 @@ def bruteForceSurvey():
                 except NoSuchElementException:
                     exceptionCount += 1
                     try:
-                        # Let's try leaving feedback (or not)
-                        if getChoice([True, False], (20, 80)):
-                            # We've gotta leave some feedback.
-                            feedback = random.choice(POSSIBLE_FEEDBACK)
-                            commentBox = browser.find_element_by_tag_name("textarea")
-                            commentBox.send_keys(feedback)
-                            clickNext()
-                        else:
-                            # Sorry MCD, no feedback today!
-                            clickNext()
+                        solveCheckBoxes()
                     except NoSuchElementException:
                         exceptionCount += 1
 
@@ -128,7 +130,7 @@ def bruteForceSurvey():
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = []
+    RECEIPT_CODES = ["16588-01801-01720-15377-00000-0", "16588-01451-01620-15158-00000-0", "16588-01391-01820-09390-00000-0"]
 
     # Here is a convenient list for slicing
     options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
@@ -167,7 +169,7 @@ if __name__ == "__main__":
         # Now we're on the page 1 where you say how you ordered, Drive-Thru, Carry-Out, Mobile, etc.
         # For now, we're all gonna be driving through
         # Drive thru is ALWAYS Opt2, for now
-        browser.find_element_by_class_name("Opt2").find_element_by_class_name("radioSimpleInput").click()
+        browser.find_element_by_class_name("Opt1").find_element_by_class_name("radioSimpleInput").click()
         browser.find_element_by_id("NextButton").click()
 
         # Page 2
