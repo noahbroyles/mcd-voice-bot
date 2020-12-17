@@ -16,7 +16,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 # Load up the feedback
-with open("responses.txt", "r") as responseFile:
+with open("../lib/responses.txt", "r") as responseFile:
     POSSIBLE_FEEDBACK = [f for f in responseFile.read().split("\n")]
 
 
@@ -110,7 +110,7 @@ def solveSingleRadioOption():
 
 def log(c, problemOccurred:bool, passes:int, exceptions:int, validationCode:int, commentLeft=False):
     # Whip out the data
-    with open("blockchain.json", 'r') as jsonFile:
+    with open("../lib/blockchain.json", 'r') as jsonFile:
         jsonData = jsonFile.read()
     jsonData = json.loads(jsonData)
 
@@ -126,7 +126,7 @@ def log(c, problemOccurred:bool, passes:int, exceptions:int, validationCode:int,
     jsonData["codes"].append(codeData)
 
     # Store it back
-    with open("blockchain.json", 'w') as jsonFile:
+    with open("../lib/blockchain.json", 'w') as jsonFile:
         jsonFile.write(json.dumps(jsonData, indent=4))
 
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         print(f"Taking the survey with code {code}...")
 
         # Set up the browser
-        browser = webdriver.Chrome(executable_path=".drivers/chromedriver")
+        browser = webdriver.Chrome(executable_path="../.drivers/chromedriver")
 
         # Go to the voice survey site
         browser.get("https://mcdvoice.com")

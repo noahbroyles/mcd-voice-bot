@@ -2,7 +2,7 @@ import speech_recognition as sr
 
 r = sr.Recognizer()
 
-with open("responses.txt", 'r') as f:
+with open("../lib/responses.txt", 'r') as f:
     SURVEY_RESPONSES = [r for r in f.read().split("\n")]
 
 while True:
@@ -20,6 +20,6 @@ while True:
     except KeyboardInterrupt:
         print(SURVEY_RESPONSES)
         responseString = "\n".join(SURVEY_RESPONSES)
-        with open("responses.txt", "w") as f:
+        with open("../lib/responses.txt", "w") as f:
             f.write(responseString)
         break
