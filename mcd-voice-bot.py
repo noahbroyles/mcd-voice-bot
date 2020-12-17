@@ -10,6 +10,7 @@
 
 # Imports
 import random
+import json
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
@@ -97,6 +98,8 @@ def leaveComment():
         if len(feedback) > 30:
             POSSIBLE_FEEDBACK.remove(feedback)
         commentBox.send_keys(feedback)
+        return True
+    return False
 
 
 def solveSingleRadioOption():
@@ -105,7 +108,29 @@ def solveSingleRadioOption():
     choice.find_element_by_class_name("radioSimpleInput").click()
 
 
-def bruteForceSurvey():
+def log(c, problemOccurred:bool, passes:int, exceptions:int, validationCode:int, commentLeft=False):
+    # Whip out the data
+    with open("blockchain.json", 'r') as jsonFile:
+        jsonData = jsonFile.read()
+    jsonData = json.loads(jsonData)
+
+    codeData = {
+        "code": c,
+        "problemOccurred": problemOccurred,
+        "passesTaken": passes,
+        "exceptionsOccurred": exceptions,
+        "validationCode": validationCode,
+        "commentLeft": commentLeft
+    }
+
+    jsonData["codes"].append(codeData)
+
+    # Store it back
+    with open("blockchain.json", 'w') as jsonFile:
+        jsonFile.write(json.dumps(jsonData, indent=4))
+
+
+def bruteForceSurvey(surveyCode):
     """
     This method hacks its way through the survey, catching exceptions along the way
     :return: nothing
@@ -113,52 +138,54 @@ def bruteForceSurvey():
     exceptionCount = 0
     passCount = 0
     PROBLEM = False
+    COMMENT_LEFT = False
 
     while True:
         try:
-            vc = browser.find_element_by_class_name("ValCode")
-            print(f"Done! Validation code: {vc.text}")
+            vc = browser.find_element_by_class_name("ValCode").text.split(": ")[1]
+            print(f"Done! Validation code: {vc}")
             print(f"Problem: {'yes' if PROBLEM else 'no'}")
             print(f"Number of exceptions: {exceptionCount}")
             print(f"Passes made: {passCount}")
+            print(f"Comment left: {'yes' if COMMENT_LEFT else 'no'}")
+            log(surveyCode, PROBLEM, passCount, exceptionCount, validationCode=vc, commentLeft=COMMENT_LEFT)
             break
         except NoSuchElementException:
             pass
 
-        try:
-            passCount += 1
-            leaveComment()
-        except NoSuchElementException:
-            exceptionCount += 1
+            try:
+                passCount += 1
+                COMMENT_LEFT = leaveComment()
+            except NoSuchElementException:
+                exceptionCount += 1
 
-        try:
-            solveTablesWithRadioButtons()
-        except NoSuchElementException:
-            exceptionCount += 1
+            try:
+                solveTablesWithRadioButtons()
+            except NoSuchElementException:
+                exceptionCount += 1
 
-        try:
-            problem = True if solveYesNo() == "Opt1" else False
-            clickNext()
-            if problem:
-                print("Shit, there was a problem with the order!")
-                PROBLEM = True
-                # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
-                # We are going to custom solve this.
-                opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
-                browser.find_element_by_tag_name("table").find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+            try:
+                problem = True if solveYesNo() == "Opt1" else False
                 clickNext()
-        except NoSuchElementException:
-            exceptionCount += 1
+                if problem:
+                    PROBLEM = True
+                    # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
+                    # We are going to custom solve this.
+                    opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
+                    browser.find_element_by_tag_name("table").find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+                    clickNext()
+            except NoSuchElementException:
+                exceptionCount += 1
 
-        try:
-            solveCheckBoxes()
-        except NoSuchElementException:
-            exceptionCount += 1
+            try:
+                solveCheckBoxes()
+            except NoSuchElementException:
+                exceptionCount += 1
 
-        try:
-            solveSingleRadioOption()
-        except NoSuchElementException:
-            exceptionCount += 1
+            try:
+                solveSingleRadioOption()
+            except NoSuchElementException:
+                exceptionCount += 1
 
         clickNext()
 
@@ -166,7 +193,7 @@ def bruteForceSurvey():
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = ["16588-01801-02920-10092-00000-0"]
+    RECEIPT_CODES = ["16588-13291-21620-15088-00021-5"]
 
     # Here is a convenient list for slicing
     options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
@@ -228,7 +255,7 @@ if __name__ == "__main__":
 
         # Since the survey is dynamic, I ran into a bit of an issue. No matter, brute force time!
         # We are going to run through all the pages, completing the appropriate actions along the way.
-        bruteForceSurvey()
+        bruteForceSurvey(code)
         # That should end us
 
         # Close the browser
