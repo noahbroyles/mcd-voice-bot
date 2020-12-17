@@ -19,7 +19,7 @@ with open("responses.txt", "r") as responseFile:
     POSSIBLE_FEEDBACK = [f for f in responseFile.read().split("\n")]
 
 
-def getChoice(customChoices=["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], customWeights=(40, 30, 15, 10, 5)):
+def getChoice(customChoices: list = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"], customWeights=(40, 30, 15, 10, 5)):
     """
     Chooses a weighted random option for the survey options. Better answers are weighted higher ;)
     :param customChoices: Custom list[string] to make choices from
@@ -40,35 +40,53 @@ def clickNext():
 
 
 def solveTablesWithRadioButtons():
-    while True:
-        table = browser.find_element_by_tag_name("table")
-        trs = table.find_elements_by_css_selector(".InputRowOdd, .InputRowEven")
-        for tr in trs:
-            opt = getChoice()
-            tr.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
-        clickNext()
+    table = browser.find_element_by_tag_name("table")
+    trs = table.find_elements_by_css_selector(".InputRowOdd, .InputRowEven")
+    for tr in trs:
+        opt = getChoice()
+        tr.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
 
 
 def solveCheckBoxes():
-    while True:
+    if "What items did you order?" in browser.page_source:
         # We're on a page with a bunch of boxes to check. We only want to check a random amount.
+        # We're on the page where you check what you ordered.
         cataListDiv = browser.find_element_by_class_name("cataListContainer")
-        checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
-        boxesToCheck = random.randrange(int(0.2 * len(checkBoxDivs)), len(checkBoxDivs) - random.randrange(1, 4))
+        checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")[:-1]  # Except for the last one, nobody ordered "other" and want to talk about it
+        boxesToCheck = random.randrange(1, len(checkBoxDivs) - random.randrange(1, int(len(checkBoxDivs)/2)))
         random.shuffle(checkBoxDivs)
         for i in range(boxesToCheck):
             checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
-        clickNext()
+    elif "What type of problem" in browser.page_source:
+        # Gosh, this is bad! Only click a few buttons!
+        cataListDiv = browser.find_element_by_class_name("cataListContainer")
+        checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
+        boxesToCheck = getChoice(customChoices=[1, 2, 3, 4], customWeights=(50, 20, 15, 15))
+        random.shuffle(checkBoxDivs)
+        for i in range(boxesToCheck):
+            checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
+    elif "Which of the following areas should we focus on to improve":
+        cataListDiv = browser.find_element_by_class_name("cataListContainer")
+        checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
+        boxesToCheck = getChoice(customChoices=[1, 2, 3, 4], customWeights=(50, 20, 15, 15))
+        random.shuffle(checkBoxDivs)
+        for i in range(boxesToCheck):
+            checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
 
 
 def solveYesNo():
-    table = browser.find_element_by_tag_name("table")
-    # Let's choose whether or not we had an issue. Opt2 is good
-    opt = getChoice(customChoices=["Opt1", "Opt2"], customWeights=(20, 80))  # So every 8 out of ten times, there was no problem
-    table.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+    if "experience a problem" in browser.page_source:
+        table = browser.find_element_by_tag_name("table")
+        # Let's choose whether or not we had an issue. Opt2 is good
+        opt = getChoice(customChoices=["Opt1", "Opt2"], customWeights=(20, 80))  # So every 8 out of ten times, there was no problem
+        table.find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
 
-    # Gucci! Now let's just return what we picked to the program can know
-    return opt
+        # Gucci! Now let's just return what we picked to the program can know
+        return opt
+    elif "place your order at a kiosk" in browser.page_source:
+        # No, ofc not you fool
+        browser.find_element_by_class_name("Opt2").find_element_by_class_name("radioSimpleInput").click()
+        return False
 
 
 def leaveComment():
@@ -77,9 +95,12 @@ def leaveComment():
         # We've gotta leave some feedback.
         feedback = random.choice(POSSIBLE_FEEDBACK)
         commentBox.send_keys(feedback)
-    clickNext()
-   
 
+
+def solveSingleRadioOption():
+    optionLists = browser.find_element_by_class_name("rbListContainer").find_elements_by_class_name("rbList")
+    choice = random.choice(optionLists)
+    choice.find_element_by_class_name("radioSimpleInput").click()
 
 
 def bruteForceSurvey():
@@ -89,54 +110,71 @@ def bruteForceSurvey():
     """
     exceptionCount = 0
     passCount = 0
+    PROBLEM = False
 
-    while exceptionCount < 30:
+    while True:
         try:
             vc = browser.find_element_by_class_name("ValCode")
-            print(f"Done! SITE RESPONSE: {vc.text}")
+            print(f"Done! Validation code: {vc.text}")
+            print(f"Problem: {'yes' if PROBLEM else 'no'}")
             print(f"Number of exceptions: {exceptionCount}")
             print(f"Passes made: {passCount}")
             break
         except NoSuchElementException:
             pass
+
         try:
-            print("Making a pass...")
             passCount += 1
             leaveComment()
         except NoSuchElementException:
             exceptionCount += 1
-            try:
-                solveTablesWithRadioButtons()
-            except NoSuchElementException:
-                exceptionCount += 1
-                try:
-                    problem = True if solveYesNo() == "Opt1" else False
-                    clickNext()
-                    if problem:
-                        print("Shit, there was a problem with the order!")
-                        # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
-                        # We are going to custom solve this.
-                        opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
-                        browser.find_element_by_tag_name("table").find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
-                        clickNext()
-                except NoSuchElementException:
-                    exceptionCount += 1
-                    try:
-                        solveCheckBoxes()
-                    except NoSuchElementException:
-                        exceptionCount += 1
+
+        try:
+            solveTablesWithRadioButtons()
+        except NoSuchElementException:
+            exceptionCount += 1
+
+        try:
+            problem = True if solveYesNo() == "Opt1" else False
+            clickNext()
+            if problem:
+                print("Shit, there was a problem with the order!")
+                PROBLEM = True
+                # Okay, here we have more tables with radio buttons. However, there are more options than just here. There is an N/A option(currently Opt9) as well
+                # We are going to custom solve this.
+                opt = getChoice(options + ["Opt9"], (20, 30, 10, 10, 10, 20))
+                browser.find_element_by_tag_name("table").find_element_by_class_name(opt).find_element_by_class_name("radioSimpleInput").click()
+                clickNext()
+        except NoSuchElementException:
+            exceptionCount += 1
+
+        try:
+            solveCheckBoxes()
+        except NoSuchElementException:
+            exceptionCount += 1
+
+        try:
+            solveSingleRadioOption()
+        except NoSuchElementException:
+            exceptionCount += 1
+
+        clickNext()
 
 
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = ["16588-01801-01720-15377-00000-0", "16588-01451-01620-15158-00000-0", "16588-01391-01820-09390-00000-0"]
+    RECEIPT_CODES = ["16588-01801-02920-10092-00000-0"]
 
     # Here is a convenient list for slicing
     options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
 
     for code in RECEIPT_CODES:
-        print(f"Taking the survey with code {code}")
+        if not len(code) == 31:
+            print(f"Ignoring invalid code {code}")
+            continue
+
+        print(f"Taking the survey with code {code}...")
 
         # Set up the browser
         browser = webdriver.Chrome(executable_path=".drivers/chromedriver")
@@ -166,10 +204,17 @@ if __name__ == "__main__":
         # Click to the next page
         clickNext()
 
+        # Check if for some reason the code wasn't valid
+        if "Error: We are unable to continue the survey based on the information you provided." in browser.page_source:
+            print(f"Ignoring invalid code {code}")
+            browser.close()
+            browser.quit()
+            continue
+
         # Now we're on the page 1 where you say how you ordered, Drive-Thru, Carry-Out, Mobile, etc.
         # For now, we're all gonna be driving through
-        # Drive thru is ALWAYS Opt2, for now
-        browser.find_element_by_class_name("Opt1").find_element_by_class_name("radioSimpleInput").click()
+        # Drive thru is ALWAYS Opt2, Dine-in Opt1, Carry out Opt3
+        browser.find_element_by_class_name("Opt3").find_element_by_class_name("radioSimpleInput").click()
         browser.find_element_by_id("NextButton").click()
 
         # Page 2
