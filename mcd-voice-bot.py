@@ -91,9 +91,11 @@ def solveYesNo():
 
 def leaveComment():
     commentBox = browser.find_element_by_tag_name("textarea")
-    if getChoice([True, False], (20, 80)):
+    if getChoice([True, False], (40, 60)):
         # We've gotta leave some feedback.
         feedback = random.choice(POSSIBLE_FEEDBACK)
+        if len(feedback) > 30:
+            POSSIBLE_FEEDBACK.remove(feedback)
         commentBox.send_keys(feedback)
 
 
