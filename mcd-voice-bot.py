@@ -65,7 +65,7 @@ def solveCheckBoxes():
         random.shuffle(checkBoxDivs)
         for i in range(boxesToCheck):
             checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
-    elif "Which of the following areas should we focus on to improve":
+    elif "Which of the following areas should we focus on to improve" in browser.page_source:
         cataListDiv = browser.find_element_by_class_name("cataListContainer")
         checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")
         boxesToCheck = getChoice(customChoices=[1, 2, 3, 4], customWeights=(50, 20, 15, 15))
