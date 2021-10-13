@@ -6,11 +6,15 @@
 # So if McDonald's really wanted accurate voice survey responses, they ought to put a QR code right on the receipt, which linked to a sensible, one page, 2 - 3 question survey.
 # And none of this "handing out voice cards" crap. It doesn't work, especially with this long boring survey linked to it. (I know, I work there ;)
 #
+# Last Confirmed Limping along: 10/13/2021
 
 
 # Imports
-import random
 import json
+import time
+import random
+
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
@@ -54,7 +58,7 @@ def solveCheckBoxes():
         # We're on the page where you check what you ordered.
         cataListDiv = browser.find_element_by_class_name("cataListContainer")
         checkBoxDivs = cataListDiv.find_elements_by_class_name("cataOption")[:-1]  # Except for the last one, nobody ordered "other" and want to talk about it
-        boxesToCheck = random.randrange(1, len(checkBoxDivs) - random.randrange(1, int(len(checkBoxDivs)/2)))
+        boxesToCheck = random.randrange(1, len(checkBoxDivs) - random.randrange(1, int(len(checkBoxDivs)/3)))
         random.shuffle(checkBoxDivs)
         for i in range(boxesToCheck):
             checkBoxDivs[i].find_element_by_class_name("checkboxSimpleInput").click()
@@ -193,7 +197,7 @@ def bruteForceSurvey(surveyCode):
 if __name__ == "__main__":
 
     # This list stores those crazy, 26 digit, nobody-has-the-time-for-these receipt codes that you need to take the crazy survey
-    RECEIPT_CODES = ["16588-13291-21620-15088-00021-5"]
+    RECEIPT_CODES = ["16588-01081-01321-06069-00060-7"]
 
     # Here is a convenient list for slicing
     options = ["Opt5", "Opt4", "Opt3", "Opt2", "Opt1"]
@@ -206,7 +210,7 @@ if __name__ == "__main__":
         print(f"Taking the survey with code {code}...")
 
         # Set up the browser
-        browser = webdriver.Chrome(executable_path="../.drivers/chromedriver")
+        browser = webdriver.Firefox(executable_path="/home/nbroyles/.drivers/geckodriver")
 
         # Go to the voice survey site
         browser.get("https://mcdvoice.com")
@@ -242,15 +246,14 @@ if __name__ == "__main__":
 
         # Now we're on the page 1 where you say how you ordered, Drive-Thru, Carry-Out, Mobile, etc.
         # For now, we're all gonna be driving through
-        # Drive thru is ALWAYS Opt2, Dine-in Opt1, Carry out Opt3
-        browser.find_element_by_class_name("Opt3").find_element_by_class_name("radioSimpleInput").click()
+        # Drive thru IS STILL Opt2
+        browser.find_element_by_class_name("Opt2").find_element_by_class_name("radioSimpleInput").click()
         browser.find_element_by_id("NextButton").click()
 
         # Page 2
-        # This is the page where you rate how satisfied overall you are with your visit
-        choice = getChoice()
-        # Choose an option
-        browser.find_element_by_class_name(choice).find_element_by_class_name("radioSimpleInput").click()
+        # This is the page where you explain how you placed your order
+        # Choose "With an employee at the restaurant", which is Opt1
+        browser.find_element_by_class_name("Opt1").find_element_by_class_name("radioSimpleInput").click()
         clickNext()
 
         # Since the survey is dynamic, I ran into a bit of an issue. No matter, brute force time!
