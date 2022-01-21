@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # mcd-voice-bot
 # by Noah Broyles
 #
@@ -210,7 +212,7 @@ if __name__ == "__main__":
         print(f"Taking the survey with code {code}...")
 
         # Set up the browser
-        browser = webdriver.Firefox(executable_path="/home/nbroyles/.drivers/geckodriver")
+        browser = webdriver.Firefox()
 
         # Go to the voice survey site
         browser.get("https://mcdvoice.com")
